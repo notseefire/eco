@@ -13,8 +13,8 @@ Client::Client(QString filename, QObject* parent): QObject(parent) {
     configFile = filename;
     currentUser = nullptr;
     try{
-        loadUserConfig(configFile);
         openDataBase();
+        loadUserConfig(configFile);
     } catch(const char* msg) {
         qDebug() << msg << Qt::endl;
         exit(0);
@@ -29,6 +29,14 @@ Client::Client(QString filename, QObject* parent): QObject(parent) {
 
 Client::~Client() {
     saveUserConfig(configFile);
+}
+
+void Client::setCart(CartModel* cartModel){
+    cart = cartModel;
+}
+
+void Client::setOrder(OrderModel *orderModel) {
+    order = orderModel;
 }
 
 void Client::loginUser(QString userid, QString password) {
@@ -61,6 +69,7 @@ void Client::loginUser(QString userid, QString password) {
                 currentUser = baseUser;
                 curSellerUser = *index;
                 emit signIn(false);
+                emit balanceChange(curSellerUser->getMoney());
                 return;
             }
         }
@@ -115,6 +124,12 @@ void Client::loadUserConfig(QString path) {
         qDebug() << "用户信息文件不存在，创建文件" << Qt::endl;
     }
 
+    QSqlQuery query;
+    QString queryStr = "CREATE TABLE IF NOT EXISTS %1_Cart(\
+                Name    VARCAHR(10)     NOT NULL,\
+                User    VARCHAR(10)     NOT NULL,\
+                Num   INT             NOT NULL\
+            );";
     QTextStream in(&file);
     QString password, userid, userType;
     float balance;
@@ -127,6 +142,8 @@ void Client::loadUserConfig(QString path) {
         if(userType == "customer") {
             in >> balance;
             customerList.append(new CustomerUser(userid, password, balance));
+            bool success = query.exec(queryStr.arg(userid));
+            if(!success) throw query.lastError();
         } else if (userType == "seller") {
             sellerList.append(new SellerUser(userid, password));
         } else {
@@ -188,6 +205,13 @@ void Client::openDataBase() {
     success = query.exec("CREATE TABLE IF NOT EXISTS Event (\
         User    VARCAHR(10)     NOT NULL,\
         Type    VARCAHR(10)     NOT NULL,\
+        Price   FLOAT           NOT NULL\
+    );");
+    if(!success) throw query.lastError();
+
+    success = query.exec("CREATE TABLE IF NOT EXISTS OrderList (\
+        Num     INT             NOT NULL,\
+        User    VARCAHR(10)     NOT NULL,\
         Price   FLOAT           NOT NULL\
     );");
     if(!success) throw query.lastError();
@@ -302,6 +326,78 @@ void Client::deleteCommodity(QString name, QString user) {
     QSqlQuery query;
     query.exec(queryStr.arg(name).arg(user));
     emit deleteCommoditySuccess();
+}
+
+void Client::addCart(QString name, QString userid, int num) {
+    QSqlQuery query;
+    QString cur = currentUser->getUserId();
+    QString queryStr = "SELECT * FROM %1_Cart WHERE User='%2' AND Name='%3'";
+    query.exec(queryStr.arg(cur).arg(userid).arg(name));
+    if(query.next()) {
+        queryStr = "UPDATE %1_Cart SET Num=Num+%2 "
+            "WHERE Name='%3' AND User='%4'";
+        query.exec(queryStr.arg(cur).arg(num).arg(name).arg(userid));
+    } else {
+        queryStr = "INSERT INTO %1_Cart VALUES('%2', '%3', %4)";
+        query.exec(queryStr.arg(cur).arg(name).arg(userid).arg(num));
+        qDebug() << queryStr.arg(cur).arg(name).arg(userid).arg(num);
+    }
+}
+
+void Client::pushOpenCart() {
+    emit openCart(currentUser->getUserId());
+}
+
+void Client::pushOpenOrder() {
+    order->openOrder(currentUser->getUserId());
+}
+
+void Client::completeDeal() {
+    QString name = cart->compeleteDeal();
+    QString msg = "生成订单失败，%1 库存不足";
+    if(name.isEmpty())
+        emit infoHappen("生成订单成功");
+    else
+        emit errorHappen(msg.arg(name));
+}
+
+void Client::select(int row) {
+    emit selected(row);
+}
+
+void Client::deleteRow(int row) {
+    cart->deleteRow(row);
+}
+
+void Client::deleteOrder(int row) {
+    order->deleteOrder(row);
+}
+
+void Client::finishOrder(int row) {
+    bool success = order->finishOrder(row, curCustomerUser->queryBalance());
+    if(success)
+        emit infoHappen("提交订单成功");
+    else
+        emit errorHappen("提交订单失败，余额不足");
+}
+
+void Client::calculateOrder(QString userid, float money) {
+    for(auto index = customerList.begin(); index != customerList.end(); index++) {
+        BaseUser* baseUser = *index;
+        if (baseUser->userid == userid) {
+            (*index)->pay(money);
+            return;
+        }
+    }
+
+    for(auto index = sellerList.begin(); index != sellerList.end(); index++) {
+        BaseUser* baseUser = *index;
+        if (baseUser->userid == userid) {
+            (*index)->addMoney(money);
+            return;
+        }
+    }
+
 }
 
 // DEBUG

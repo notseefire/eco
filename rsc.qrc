@@ -6,5 +6,7 @@
         <file>Login.qml</file>
         <file>ShopList.qml</file>
         <file>Home.qml</file>
+        <file>Cart.qml</file>
+        <file>qmldir</file>
     </qresource>
 </RCC>

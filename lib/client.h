@@ -8,6 +8,8 @@
 #include <QSqlDatabase>
 #include <QObject>
 #include <QRegExp>
+#include "cartmodel.h"
+#include "ordermodel.h"
 
 
 /*! \class Client
@@ -142,6 +144,26 @@ public:
      */
     Q_INVOKABLE void addEvent(QString type, float percent);
 
+    Q_INVOKABLE void addCart(QString name, QString userid, int num);
+
+    Q_INVOKABLE void pushOpenCart();
+
+    Q_INVOKABLE void select(int row);
+
+    Q_INVOKABLE void completeDeal();
+
+    Q_INVOKABLE void pushOpenOrder();
+
+    Q_INVOKABLE void deleteRow(int row);
+
+    Q_INVOKABLE void finishOrder(int row);
+
+    Q_INVOKABLE void deleteOrder(int row);
+
+    void setCart(CartModel* cartModel);
+
+    void setOrder(OrderModel* orderModel);
+
 signals:
     void signIn(bool isCustomer);
     void signOut();
@@ -152,6 +174,10 @@ signals:
     void buyCommoditySuccess();
     void changeCommoditySuccess();
     void deleteCommoditySuccess();
+    void openCart(QString cur);
+
+    void dealNoLate();
+    void selected(int row);
 
 private:
     BaseUser* currentUser;  //!< 当前客户端登录的用户，未登录时为空
@@ -163,9 +189,11 @@ private:
     QString configFile; //!< 客户端用户信息的文件路径
     QList<CustomerUser *> customerList; //!< 加载到内存中的消费者用户列表
     QList<SellerUser *> sellerList; //!< 加载到内存中的商家用户列表
+    CartModel* cart;
+    OrderModel* order;
 
 public slots:
-
+    void calculateOrder(QString userid, float money);
 };
 
 #endif // CLIENT_H

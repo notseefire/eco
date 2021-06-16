@@ -45,6 +45,13 @@ public:
      *  \brief 返回UserType::Seller，表示用户类型为商家
      */
     UserType getUserType() const override;
+
+    void addMoney(float price);
+
+    float getMoney();
+
+private:
+    float money;
 };
 
 /*! \class CustomerUser

@@ -20,7 +20,17 @@ QString BaseUser::getPassword() const {
 }
 
 SellerUser::SellerUser(QString& n_userid, QString& n_password)
-    : BaseUser(n_userid, n_password) {}
+    : BaseUser(n_userid, n_password) {
+    money = 0;
+}
+
+void SellerUser::addMoney(float price) {
+    money += price;
+}
+
+float SellerUser::getMoney() {
+    return money;
+}
 
 UserType SellerUser::getUserType() const {
     return UserType::Seller;

@@ -9,17 +9,25 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+	cartmodel.cpp \
     commoditymodel.cpp \
+	lib/cartcommodity.cpp \
     lib/client.cpp \
     lib/commodity.cpp \
+	lib/order.cpp \
     main.cpp \
     lib/user.cpp \
+	ordermodel.cpp
 
 HEADERS += \
+	cartmodel.h \
     commoditymodel.h \
+	lib/cartcommodity.h \
     lib/client.h \
     lib/commodity.h \
+	lib/order.h \
     lib/user.h \
+	ordermodel.h
 
 DISTFILES += \
     main.qml \

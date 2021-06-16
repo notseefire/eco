@@ -9,7 +9,7 @@ Item {
         anchors.leftMargin: 200
         Frame {
             contentItem: Text {
-                text: qsTr("ECO电商交易平台1.0ver")
+                text: qsTr("ECO电商交易平台2.0ver")
             }
         }
 

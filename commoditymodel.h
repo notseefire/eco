@@ -38,6 +38,10 @@ public:
         return {{Qt::DisplayRole, "display"}};
     }
 
+    QList<BaseCommodity*> m_list;
+    int m_column;
+    unsigned int conditionMask;
+
 
 signals:
     void onModelReset(BaseCommodity* list);
@@ -48,11 +52,6 @@ public slots:
         m_list.append(list);
         endResetModel();
     }
-
-private:
-    QList<BaseCommodity*> m_list;
-    int m_column;
-    unsigned int conditionMask;
 };
 
 #endif // COMMODITYMODEL_H
