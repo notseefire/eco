@@ -9,10 +9,20 @@
 #ifndef USER_H
 #define USER_H
 #include <QString>
+#include <QJsonObject>
 
 enum UserType {
+    Customer,
     Seller,
-    Customer
+
+};
+
+enum UserResponseType {
+    SignError,
+    UserExisting,
+    Success,
+    SignSuccess,
+    Error,
 };
 
 /*! \class BaseUser
@@ -27,12 +37,13 @@ public:
      *  \param userid 用户名
      *  \param password 密码
      */
-    BaseUser(QString& userid, QString& password);
+    BaseUser(QString userid, QString password);
     void setUserId(QString& new_userid);
     void setPassword(QString&);
     QString getUserId() const;
     QString getPassword() const;
     virtual UserType getUserType() const = 0;
+    virtual QJsonObject toJsonObject() const = 0;
 };
 
 /*! \class SellerUser
@@ -41,10 +52,12 @@ public:
 class SellerUser: public BaseUser {
 public:
     SellerUser(QString&, QString&);
+    SellerUser(QJsonObject& json);
     /*! \fn UserType getUserType()
      *  \brief 返回UserType::Seller，表示用户类型为商家
      */
     UserType getUserType() const override;
+    QJsonObject toJsonObject() const override;
 };
 
 /*! \class CustomerUser
@@ -53,6 +66,8 @@ public:
 class CustomerUser: public BaseUser {
 public:
     CustomerUser(QString&, QString&, float = 0);
+    CustomerUser(QJsonObject& json);
+
     /*! \fn UserType getUserType()
      *  \brief 返回UserType::Customer，表示用户类型为消费者
      */
@@ -76,6 +91,8 @@ public:
      *  \return 返回用户余额
      */
     float queryBalance() const;
+
+    QJsonObject toJsonObject() const override;
 private:
     float balance;
 };

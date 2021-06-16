@@ -8,6 +8,7 @@
 #include <QVector>
 #include <QSqlQuery>
 #include <QDebug>
+#include "lib/client.h"
 
 class CommodityModel : public QAbstractTableModel
 {
@@ -23,7 +24,7 @@ public:
         Book = 1 << 2,
     };
 
-    explicit CommodityModel(QObject *parent = nullptr);
+    explicit CommodityModel(Client* n_client, QObject *parent = nullptr);
     int rowCount(const QModelIndex & = QModelIndex()) const override;
     int columnCount(const QModelIndex & = QModelIndex()) const override;
     Q_INVOKABLE QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
@@ -41,6 +42,7 @@ public:
 
 signals:
     void onModelReset(BaseCommodity* list);
+    void requestFresh(QString query);
 
 public slots:
     void modelReset(BaseCommodity* list) {
@@ -49,10 +51,17 @@ public slots:
         endResetModel();
     }
 
+    void modelFresh(QList<BaseCommodity*> new_list) {
+        beginResetModel();
+        m_list = new_list;
+        endResetModel();
+    }
+
 private:
     QList<BaseCommodity*> m_list;
     int m_column;
     unsigned int conditionMask;
+    Client* client;
 };
 
 #endif // COMMODITYMODEL_H

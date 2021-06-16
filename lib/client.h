@@ -7,7 +7,10 @@
 #include <QFile>
 #include <QSqlDatabase>
 #include <QObject>
+#include <QDataStream>
 #include <QRegExp>
+#include <QTcpSocket>
+#include "../../server/command.h"
 
 
 /*! \class Client
@@ -19,31 +22,8 @@ class Client : public QObject {
     Q_OBJECT
 
 public:
-    Client(QString = "qrc:/config.txt", QObject *parent = 0);
+    Client(QObject *parent = 0);
     ~Client() override;
-
-    /*! \fn void loadUserConfig(QString path)
-     *  \brief 载入用户信息
-     *  \param  用户信息的所在路径
-     */
-    void loadUserConfig(QString path);
-
-    /*! \fn void saveUserConfig(QString path)
-     *  \brief 保存用户信息
-     *  \param  用户信息的所在路径
-     */
-    void saveUserConfig(QString path);
-
-    /*! \fn void openDataBase()
-     *  \brief 打开数据库文件
-     */
-    void openDataBase();
-
-    /*! \fn int debugUserCount()
-     *  \brief  获取用户数量
-     *  \return 目前用户数量
-     */
-    int debugUserCount();
 
     /*! \fn void addNewCommoidty(QString name, QString description, QString type, QString sprice, QString sstore)
      *  \brief 向数据库中添加 新的商品
@@ -66,11 +46,6 @@ public:
      *  \brief 注销登录，成功后将会设置客户端用户为空
      */
     Q_INVOKABLE void signOutUser();
-
-    /*! \fn void saveUserConfig()
-     *  \brief 提供给界面类保存用户信息的接口
-     */
-    Q_INVOKABLE void saveUserConfig();
 
     /*! \fn bool is_login()
      *  \brief 查询当前客户端是否有用户登录
@@ -142,6 +117,12 @@ public:
      */
     Q_INVOKABLE void addEvent(QString type, float percent);
 
+    float queryCurrentBalance();
+    float queryPercent(BaseCommodity* commodity);
+    void sendMessage(Command command);
+    QJsonObject waitData();
+    QJsonArray waitArray();
+
 signals:
     void signIn(bool isCustomer);
     void signOut();
@@ -152,6 +133,15 @@ signals:
     void buyCommoditySuccess();
     void changeCommoditySuccess();
     void deleteCommoditySuccess();
+    void fresh(QList<BaseCommodity*> new_list);
+
+public slots:
+    void freshData(QString query);
+
+private slots:
+    void connectSuccess() {
+        qDebug() << "connect success";
+    }
 
 private:
     BaseUser* currentUser;  //!< 当前客户端登录的用户，未登录时为空
@@ -159,10 +149,9 @@ private:
     CustomerUser *curCustomerUser;  //!< 当前客户端登录的消费者用户，未登录时为空
     SellerUser *curSellerUser;  //!< 当前客户端登录的商家用户，未登录时为空
 
+    QTcpSocket* socket = nullptr;
+    QDataStream in;
     QSqlDatabase database; //!< 客户端的数据库对象
-    QString configFile; //!< 客户端用户信息的文件路径
-    QList<CustomerUser *> customerList; //!< 加载到内存中的消费者用户列表
-    QList<SellerUser *> sellerList; //!< 加载到内存中的商家用户列表
 
 public slots:
 

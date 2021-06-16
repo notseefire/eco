@@ -87,7 +87,6 @@ ApplicationWindow {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        client.saveUserConfig()
                         Qt.quit()
                     }
                 }

@@ -1,6 +1,6 @@
 #include "user.h"
 
-BaseUser::BaseUser(QString& userid, QString& password)
+BaseUser::BaseUser(QString userid, QString password)
     : userid(userid), password(password) {}
 
 void BaseUser::setUserId(QString& new_userid) {
@@ -22,6 +22,9 @@ QString BaseUser::getPassword() const {
 SellerUser::SellerUser(QString& n_userid, QString& n_password)
     : BaseUser(n_userid, n_password) {}
 
+SellerUser::SellerUser(QJsonObject& json)
+    : BaseUser(json["userid"].toString(), json["password"].toString()) {}
+
 UserType SellerUser::getUserType() const {
     return UserType::Seller;
 }
@@ -30,6 +33,11 @@ CustomerUser::CustomerUser(QString& n_userid, QString& n_password, float n_balan
     : BaseUser(n_userid, n_password) {
     // 初始用户没有任何余额
     balance = n_balance;
+}
+
+CustomerUser::CustomerUser(QJsonObject& json)
+    : BaseUser(json["userid"].toString(), json["password"].toString()) {
+    balance = json["balance"].toDouble();
 }
 
 UserType CustomerUser::getUserType() const {
@@ -46,4 +54,21 @@ void CustomerUser::pay(float minusBalance) {
 
 float CustomerUser::queryBalance() const {
     return balance;
+}
+
+QJsonObject CustomerUser::toJsonObject() const {
+    QJsonObject json;
+    json["usertype"] = UserType::Customer;
+    json["userid"] = userid;
+    json["password"] = password;
+    json["balance"] = balance;
+    return json;
+}
+
+QJsonObject SellerUser::toJsonObject() const {
+    QJsonObject json;
+    json["usertype"] = UserType::Seller;
+    json["userid"] = userid;
+    json["password"] = password;
+    return json;
 }

@@ -8,11 +8,19 @@
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
-    Client* client = new Client("./233.txt");
-    CommodityModel* commodityModel = new CommodityModel();
+    Client* client = new Client();
+    CommodityModel* commodityModel = new CommodityModel(client);
 
     QObject::connect(client, &Client::updateData,
                      commodityModel, &CommodityModel::modelReset);
+
+    QObject::connect(client, &Client::fresh,
+                     commodityModel, &CommodityModel::modelFresh);
+
+    QObject::connect(commodityModel, &CommodityModel::requestFresh,
+                     client, &Client::freshData);
+
+    client->freshData("SELECT * FROM Commodity");
 
     QQmlApplicationEngine engine;
     qmlRegisterType<Client>("com.cyks.Client", 1, 0, "Client");

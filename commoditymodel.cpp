@@ -2,12 +2,11 @@
 #include <QSqlQuery>
 #include <QSqlRecord>
 
-CommodityModel::CommodityModel(QObject* parent): QAbstractTableModel(parent) {
+CommodityModel::CommodityModel(Client* n_client, QObject* parent): QAbstractTableModel(parent) {
+    client = n_client;
     connect(this, &CommodityModel::onModelReset,
             this, &CommodityModel::modelReset);
 
-    QSqlQuery query;
-    query.exec("SELECT * FROM Commodity");
     /* Commodity Data Table
         Name    VARCAHR(10)     NOT NULL
         Description VARCHAR(50) NOT NULL
@@ -17,22 +16,7 @@ CommodityModel::CommodityModel(QObject* parent): QAbstractTableModel(parent) {
         Store   INT             NOT NULL
     */
     m_column = 6;
-    while(query.next()) {
-        BaseCommodity* element;
-        QString name = query.value(0).toString();
-        QString description = query.value(1).toString();
-        QString type = query.value(2).toString();
-        QString userid = query.value(3).toString();
-        float price = query.value(4).toString().toFloat();
-        int store = query.value(5).toString().toInt();
-        if(type == "Cloth")
-            element = new ClothCommodity(name, userid, description, price, store);
-        if(type == "Food")
-            element = new FoodCommodity(name, userid, description, price, store);
-        if(type == "Book")
-            element = new BookCommodity(name, userid, description, price, store);
-        m_list.append(element);
-    }
+
 
     conditionMask = (1 << 3) - 1;
 }
@@ -74,7 +58,7 @@ QVariant CommodityModel::data(const QModelIndex &index, int role) const {
         if(index.column() == 3)
             return m_list.at(index.row())->getUserID();
         if(index.column() == 4)
-            return QString("%1").arg(m_list.at(index.row())->getActualPrice());
+            return QString("%1").arg(m_list.at(index.row())->getPrice());
         if(index.column() == 5)
             return QString("%1").arg(m_list.at(index.row())->getStore());
     default:
@@ -126,6 +110,9 @@ void CommodityModel::search(QString searchText) {
         }
     }
 
+    emit requestFresh(queryStr);
+
+    /*
     query.exec(queryStr);
     beginResetModel();
     for(auto index = m_list.begin(); index != m_list.end(); index++)
@@ -148,6 +135,7 @@ void CommodityModel::search(QString searchText) {
         m_list.append(element);
     }
     endResetModel();
+    */
 }
 
 void CommodityModel::insertCondition(int choice) {
@@ -181,6 +169,15 @@ QString CommodityModel::getStringData(int row, int col) {
 }
 
 double CommodityModel::getDoubleData(int row, int col) {
-    if(col == 4)
-        return m_list.at(row)->getActualPrice();
+    if(col == 4) {
+        BaseCommodity* commodity = m_list.at(row);
+        return commodity->getPrice();
+    }
+    if(col == 6) {
+        BaseCommodity* commodity = m_list.at(row);
+        double percent = client->queryPercent(commodity);
+        int int_percent = percent * 100.0;
+        percent = int_percent / 100.0;
+        return percent;
+    }
 }

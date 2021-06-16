@@ -199,6 +199,7 @@ ColumnLayout {
                         inBuyPopup.name = commodityModel.getStringData(viewMenu.currentNum, 0)
                         inBuyPopup.user = commodityModel.getStringData(viewMenu.currentNum, 3)
                         inBuyPopup.price = commodityModel.getDoubleData(viewMenu.currentNum, 4)
+                        inBuyPopup.percent = commodityModel.getDoubleData(viewMenu.currentNum, 6)
                         inBuyPopup.stored = commodityModel.getNumberData(viewMenu.currentNum, 5)
                         inBuyPopup.open()
                     }
@@ -241,6 +242,7 @@ ColumnLayout {
             id: inBuyPopup
             property int stored: 0
             property double price
+            property double percent
             property string name
             property string user
 
@@ -264,6 +266,24 @@ ColumnLayout {
                 }
 
                 RowLayout {
+                    Text {
+                        text: qsTr("当前折扣: ")
+                    }
+
+                    Text {
+                        text: inBuyPopup.percent
+                    }
+
+                    Text {
+                        text: qsTr("原价: ")
+                    }
+
+                    Text {
+                        text: inBuyPopup.price
+                    }
+                }
+
+                RowLayout {
                     Button {
                         contentItem: Text {
                             text: qsTr("确定")
@@ -276,7 +296,8 @@ ColumnLayout {
 
                         onClicked: {
                             onClicked: inBuyPopup.close()
-                            client.buyCommodity(inBuyPopup.name, inBuyPopup.user, inBuyPopup.price, storedSlider.value)
+                            client.buyCommodity(inBuyPopup.name, inBuyPopup.user,
+                                                inBuyPopup.price * inBuyPopup.percent, storedSlider.value)
                         }
                     }
 

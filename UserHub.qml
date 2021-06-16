@@ -103,7 +103,7 @@ Item {
                             radius: 6
                         }
 
-                        onClicked: client.signOut()
+                        onClicked: client.signOutUser()
                     }
                 }
             }

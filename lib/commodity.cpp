@@ -5,6 +5,25 @@
 BaseCommodity::BaseCommodity(QString name, QString userid, QString description, float price, int store):
     name(name), userid(userid), description(description), price(price), store(store) {}
 
+BaseCommodity::BaseCommodity(QJsonObject& json) {
+    name = json["name"].toString();
+    userid = json["userid"].toString();
+    description = json["description"].toString();
+    price = json["price"].toDouble();
+    store = json["store"].toInt();
+}
+
+QJsonObject BaseCommodity::toJsonObject() {
+    QJsonObject json;
+    json["name"] = name;
+    json["userid"] = userid;
+    json["description"] = description;
+    json["price"] = price;
+    json["store"] = store;
+    json["type"] = getType();
+    return json;
+}
+
 QString BaseCommodity::getName() const {
     return name;
 }
@@ -44,11 +63,20 @@ QString BaseCommodity::getUserID() const {
 ClothCommodity::ClothCommodity(QString name, QString userid, QString description, float price, int store)
     : BaseCommodity(name, userid, description, price, store) {}
 
+ClothCommodity::ClothCommodity(QJsonObject& json)
+    : BaseCommodity(json) {}
+
 BookCommodity::BookCommodity(QString name, QString userid, QString description, float price, int store)
     : BaseCommodity(name, userid, description, price, store) {}
 
+BookCommodity::BookCommodity(QJsonObject& json)
+    : BaseCommodity(json) {}
+
 FoodCommodity::FoodCommodity(QString name, QString userid, QString description, float price, int store)
     : BaseCommodity(name, userid, description, price, store) {}
+
+FoodCommodity::FoodCommodity(QJsonObject& json)
+    : BaseCommodity(json) {}
 
 float ClothCommodity::getActualPrice() const {
     QString queryStr = "SELECT * FROM Event Where User = '%1' AND Type = 'Cloth'";
@@ -56,10 +84,10 @@ float ClothCommodity::getActualPrice() const {
     query.exec(queryStr.arg(getUserID()));
     if(query.next()) {
         float percent = query.value(2).toString().toFloat();
-        return percent * getPrice();
+        return percent;
     }
     else {
-        return getPrice();
+        return 1.0;
     }
 }
 
@@ -73,7 +101,7 @@ float BookCommodity::getActualPrice() const {
     query.exec(queryStr.arg(getUserID()));
     if(query.next()) {
         float percent = query.value(2).toString().toFloat();
-        return percent * getPrice();
+        return percent;
     }
     else {
         return getPrice();
@@ -90,7 +118,7 @@ float FoodCommodity::getActualPrice() const {
     query.exec(queryStr.arg(getUserID()));
     if(query.next()) {
         float percent = query.value(2).toString().toFloat();
-        return percent * getPrice();
+        return percent;
     }
     else {
         return getPrice();
