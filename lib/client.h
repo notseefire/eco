@@ -12,6 +12,8 @@
 #include <QRegExp>
 #include <QTcpSocket>
 #include "../../server/command.h"
+#include "cartmodel.h"
+#include "ordermodel.h"
 
 
 /*! \class Client
@@ -126,6 +128,26 @@ public:
 
     void setConnection();
 
+    Q_INVOKABLE void addCart(QString name, QString userid, int num);
+
+    Q_INVOKABLE void pushOpenCart();
+
+    Q_INVOKABLE void select(int row);
+
+    Q_INVOKABLE void completeDeal();
+
+    Q_INVOKABLE void pushOpenOrder();
+
+    Q_INVOKABLE void deleteRow(int row);
+
+    Q_INVOKABLE void finishOrder(int row);
+
+    Q_INVOKABLE void deleteOrder(int row);
+
+    void setCart(CartModel* cartModel);
+
+    void setOrder(OrderModel* orderModel);
+
 signals:
     void signIn(bool isCustomer);
     void signOut();
@@ -137,6 +159,10 @@ signals:
     void changeCommoditySuccess();
     void deleteCommoditySuccess();
     void fresh(QList<BaseCommodity*> new_list);
+
+    void openCart(QString cur);
+    void dealNoLate();
+    void selected(int row);
 
 public slots:
     void freshData(QString query);
@@ -158,8 +184,11 @@ private:
     QDataStream in;
     QSqlDatabase database; //!< 客户端的数据库对象
 
-public slots:
+    CartModel* cart;
+    OrderModel* order;
 
+public slots:
+    void calculateOrder(QString userid, float money);
 };
 
 #endif // CLIENT_H

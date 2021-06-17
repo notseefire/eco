@@ -51,13 +51,18 @@ public:
  */
 class SellerUser: public BaseUser {
 public:
-    SellerUser(QString&, QString&);
+    SellerUser(QString&, QString&, float balance);
     SellerUser(QJsonObject& json);
     /*! \fn UserType getUserType()
      *  \brief 返回UserType::Seller，表示用户类型为商家
      */
     UserType getUserType() const override;
     QJsonObject toJsonObject() const override;
+    void addMoney(float price);
+    float getMoney();
+
+    float money;
+
 };
 
 /*! \class CustomerUser

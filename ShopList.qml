@@ -206,8 +206,14 @@ ColumnLayout {
                 }
 
                 Action {
-                    text: "加入购物车(未实现)"
-                    enabled: tableView.isLogin && tableView.isLoginCustomer
+                    text: "加入购物车"
+                                        enabled: tableView.isLogin && tableView.isLoginCustomer
+                                        onTriggered: {
+                                            addCartPopup.name = commodityModel.getStringData(viewMenu.currentNum, 0)
+                                            addCartPopup.user = commodityModel.getStringData(viewMenu.currentNum, 3)
+                                            addCartPopup.stored = commodityModel.getNumberData(viewMenu.currentNum, 5)
+                                            addCartPopup.open()
+                                        }
                 }
 
                 MenuSeparator {}
@@ -450,5 +456,64 @@ ColumnLayout {
                 }
             }
         }
+
+        Popup {
+                    id: addCartPopup
+                    property int stored: 0
+                    property double price
+                    property string name
+                    property string user
+
+                    contentItem: ColumnLayout {
+                        Text {
+                            text: qsTr("添加入购物车的商品数量")
+                        }
+
+                        RowLayout {
+                            Slider {
+                                id: addStoredSlider
+                                from: 1
+                                to: addCartPopup.stored
+                                enabled: addCartPopup.stored != 0
+                                stepSize: 1
+                            }
+
+                            Text {
+                                text: addStoredSlider.value
+                            }
+                        }
+
+                        RowLayout {
+                            Button {
+                                contentItem: Text {
+                                    text: qsTr("确定")
+                                }
+
+                                background: Rectangle {
+                                    radius: 6
+                                    color: "#21be2b"
+                                }
+
+                                onClicked: {
+                                    onClicked: addCartPopup.close()
+                                    client.addCart(addCartPopup.name, addCartPopup.user, addStoredSlider.value);
+                                }
+                            }
+
+                            Button {
+                                contentItem: Text {
+                                    text: qsTr("取消")
+                                }
+
+                                background: Rectangle {
+                                    radius: 6
+                                    color: "#21be2b"
+                                }
+
+                                onClicked: addCartPopup.close()
+                            }
+                        }
+                    }
+                }
     }
 }

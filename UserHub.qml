@@ -133,7 +133,31 @@ Item {
                             }
                             onClicked: rechargePopup.open()
                         }
+
+                        Button {
+                                                    contentItem: Text {
+                                                        text: qsTr("查看购物车")
+                                                    }
+
+                                                    onClicked: {
+                                                        client.pushOpenCart()
+                                                        cartListPopup.open()
+                                                    }
+                                                }
+
+                                                Button {
+                                                    contentItem: Text {
+                                                        text: qsTr("查看订单")
+                                                    }
+
+                                                    onClicked: {
+                                                        client.pushOpenOrder()
+                                                        orderListPopup.open()
+                                                    }
+                                                }
                     }
+
+
 
                     Popup {
                         id: rechargePopup
@@ -152,7 +176,7 @@ Item {
                                 }
 
                                 Text {
-                                    text: chargeSlider.value
+                                    text: chargeSlider.value.toFixed(2)
                                 }
                             }
 
@@ -188,10 +212,279 @@ Item {
                             }
                         }
                     }
+
+                    Popup {
+                                            id: cartListPopup
+                                            anchors.centerIn: customer
+
+                                            contentItem: ColumnLayout {
+                                                TableView {
+                                                    property bool isLogin: false
+                                                    property bool isLoginCustomer: false
+                                                    Layout.topMargin: 50
+                                                    Layout.leftMargin: 100
+                                                    implicitWidth: 400
+                                                    implicitHeight: 300
+                                                    id: tableView
+
+                                                    columnWidthProvider: function(column) {
+                                                        return 100;
+                                                    }
+
+                                                    rowHeightProvider: function(row) {
+                                                        return 50;
+                                                    }
+
+                                                    model: cartModel
+
+                                                    ScrollBar.vertical:   ScrollBar {
+                                                        anchors.right: tableView.right
+                                                        width: 5
+                                                        active: true
+
+                                                        contentItem: Rectangle {
+                                                            id:contentItem_rect2
+                                                            width:10
+                                                            height:30
+                                                            radius: implicitHeight/2
+                                                            color: "LightGray"
+                                                        }
+                                                    }
+
+                                                    Row {
+                                                        id: columnsHeader
+                                                        y: tableView.contentY - 50
+                                                        z: 2
+                                                        Repeater {
+                                                            model: tableView.columns > 0 ? tableView.columns : 1
+                                                            Label {
+                                                                width: tableView.columnWidthProvider(modelData)
+                                                                height: 35
+                                                                text: cartModel.headerData(modelData, Qt.Horizontal)
+                                                                color: '#aaaaaa'
+                                                                font.pixelSize: 15
+                                                                padding: 10
+                                                                verticalAlignment: Text.AlignVCenter
+
+                                                                background: Rectangle { color: "#333333" }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    delegate: Rectangle {
+                                                        width:100
+                                                        height: 50
+                                                        color: "#3887a7"
+
+                                                        StackLayout {
+                                                            anchors.fill: parent
+                                                            currentIndex: column == 3
+
+                                                            Text {
+                                                                Layout.alignment: Layout.Center
+                                                                padding: 5
+                                                                text: display
+                                                                wrapMode: Text.WordWrap
+                                                            }
+
+                                                            CheckBox {
+                                                                Layout.alignment: Layout.Center
+                                                                checked: check
+                                                                onCheckedChanged: client.select(row)
+                                                            }
+                                                        }
+
+
+
+                                                        MouseArea {
+                                                            anchors.fill: parent
+                                                            acceptedButtons: Qt.RightButton
+                                                            onClicked: {
+                                                                viewMenu.currentNum = row
+                                                                viewMenu.popup()
+                                                            }
+                                                        }
+
+                                                        Menu {
+                                                            id: viewMenu
+                                                            property int currentNum: 0
+
+                                                            Action {
+                                                                text: "移除商品"
+                                                                onTriggered: {
+                                                                    client.deleteRow(viewMenu.currentNum)
+                                                                    client.pushOpenCart()
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                RowLayout {
+                                                    Button {
+                                                        text: qsTr("购物车结算")
+
+                                                        onClicked: {
+                                                            client.completeDeal()
+                                                            cartListPopup.close()
+                                                        }
+                                                    }
+
+                                                    Button {
+                                                        text: qsTr("关闭")
+                                                        onClicked: {
+                                                            cartListPopup.close()
+                                                        }
+                                                    }
+                                                }
+
+
+                                            }
+
+                                            background: Rectangle {
+                                                width: 700
+                                                height: 1000
+                                                anchors.fill: parent
+                                                color: "#3887a7"
+                                                radius: 20
+                                                opacity: 0.9
+                                            }
+                                        }
+
+                    Popup {
+                                            id: orderListPopup
+                                            anchors.centerIn: customer
+
+                                            contentItem: ColumnLayout {
+                                                TableView {
+                                                    property bool isLogin: false
+                                                    property bool isLoginCustomer: false
+                                                    Layout.topMargin: 50
+                                                    Layout.leftMargin: 100
+                                                    implicitWidth: 400
+                                                    implicitHeight: 300
+                                                    id: orderTableView
+
+                                                    columnWidthProvider: function(column) {
+                                                        return 100;
+                                                    }
+
+                                                    rowHeightProvider: function(row) {
+                                                        return 50;
+                                                    }
+
+                                                    model: orderModel
+
+                                                    ScrollBar.vertical:   ScrollBar {
+                                                        anchors.right: orderTableView.right
+                                                        width: 5
+                                                        active: true
+
+                                                        contentItem: Rectangle {
+                                                            width:10
+                                                            height:30
+                                                            radius: implicitHeight/2
+                                                            color: "LightGray"
+                                                        }
+                                                    }
+
+                                                    Row {
+                                                        y: orderTableView.contentY - 50
+                                                        z: 2
+                                                        Repeater {
+                                                            model: orderTableView.columns > 0 ? orderTableView.columns : 1
+                                                            Label {
+                                                                width: orderTableView.columnWidthProvider(modelData)
+                                                                height: 35
+                                                                text: orderModel.headerData(modelData, Qt.Horizontal)
+                                                                color: '#aaaaaa'
+                                                                font.pixelSize: 15
+                                                                padding: 10
+                                                                verticalAlignment: Text.AlignVCenter
+
+                                                                background: Rectangle { color: "#333333" }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    delegate: Rectangle {
+                                                        width:100
+                                                        height: 50
+                                                        color: "#3887a7"
+
+                                                        Text {
+                                                            anchors.fill: parent
+                                                            padding: 5
+                                                            text: display
+                                                            wrapMode: Text.WordWrap
+                                                        }
+
+
+
+                                                        MouseArea {
+                                                            anchors.fill: parent
+                                                            acceptedButtons: Qt.RightButton
+                                                            onClicked: {
+                                                                orderViewMenu.currentNum = row
+                                                                orderViewMenu.popup()
+                                                            }
+                                                        }
+
+                                                        Menu {
+                                                            id: orderViewMenu
+                                                            property int currentNum: 0
+
+                                                            Action {
+                                                                text: "取消订单"
+                                                                onTriggered: {
+                                                                    client.deleteOrder(orderViewMenu.currentNum)
+                                                                    client.pushOpenOrder()
+                                                                }
+                                                            }
+
+                                                            Action {
+                                                                text: "支付订单"
+                                                                onTriggered: {
+                                                                    client.finishOrder(orderViewMenu.currentNum)
+                                                                    client.pushOpenOrder()
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                Button {
+                                                    text: qsTr("关闭")
+                                                    onClicked: {
+                                                        orderListPopup.close()
+                                                    }
+                                                }
+
+                                            }
+
+                                            background: Rectangle {
+                                                width: 700
+                                                height: 1000
+                                                anchors.fill: parent
+                                                color: "#3887a7"
+                                                radius: 20
+                                                opacity: 0.9
+                                            }
+                                        }
                 }
 
                 ColumnLayout {
                     id: seller
+
+                    RowLayout {
+                                            Text {
+                                                text: qsTr("营利: ")
+                                            }
+
+                                            Text {
+                                                text: balance.toFixed(2)
+                                            }
+                                        }
 
                     Button {
                         anchors.topMargin: 200

@@ -13,13 +13,16 @@
 Client::Client(QObject* parent): QObject(parent) {
     timer = new QTimer();
     socket = new QTcpSocket(this);
+    //socket->localPort();
     socket->connectToHost("127.0.0.1", 23333);
     socket->waitForConnected();
 
+    while(socket->state() == QAbstractSocket::SocketState::UnconnectedState) {
+        socket->connectToHost("127.0.0.1", 23333);
+        socket->waitForConnected(1000);
+    }
     connect(socket, &QAbstractSocket::disconnected,
             this, &Client::disconnection);
-
-    timer->start(2000);
 
     in.setDevice(socket);
     in.setVersion(QDataStream::Version::Qt_5_15);
@@ -29,18 +32,35 @@ Client::Client(QObject* parent): QObject(parent) {
             this, &Client::try_connect);
 }
 
+void Client::setCart(CartModel* cartModel){
+    cart = cartModel;
+}
+
+void Client::setOrder(OrderModel *orderModel) {
+    order = orderModel;
+}
+
 void Client::setConnection() {
 
 }
 
 void Client::disconnection() {
     emit errorHappen("失去与服务器的连接");
-    socket->connectToHost("127.0.0.1", 23333);
-    socket->waitForConnected();
+    signOutUser();
+    socket = new QTcpSocket(this);
+    while(socket->state() == QAbstractSocket::SocketState::UnconnectedState) {
+        socket->connectToHost("127.0.0.1", 23333);
+        socket->waitForConnected(1000);
+    }
+    connect(socket, &QAbstractSocket::disconnected,
+            this, &Client::disconnection);
+
+    in.setDevice(socket);
+    in.setVersion(QDataStream::Version::Qt_5_15);
 }
 
 void Client::try_connect() {
-    if(socket->state() == QAbstractSocket::SocketState::UnconnectedState) {
+    while(socket->state() == QAbstractSocket::SocketState::UnconnectedState) {
         socket->connectToHost("127.0.0.1", 23333);
         socket->waitForConnected(1000);
     }
@@ -73,6 +93,7 @@ void Client::loginUser(QString userid, QString password) {
         } else if(usertype == UserType::Seller) {
             curSellerUser = new SellerUser(json);
             currentUser = curSellerUser;
+            emit balanceChange(curSellerUser->getMoney());
         }
         emit signIn(currentUser->getUserType() == UserType::Customer);
     }
@@ -274,6 +295,109 @@ void Client::freshData(QString query) {
         new_list.append(element);
     }
     emit fresh(new_list);
+}
+
+
+void Client::addCart(QString name, QString userid, int num) {
+    Command command(CommandType::CART_UPDATE, name, userid, num, currentUser->getUserId());
+    sendMessage(command);
+    QJsonObject json = waitData();
+}
+
+void Client::pushOpenCart() {
+    QString queryStr = "SELECT * FROM %1_Cart";
+    Command command(CommandType::CART_SELECT, queryStr.arg(currentUser->getUserId()));
+    sendMessage(command);
+    QJsonArray array = waitArray();
+    QList<CartCommodity*> n_list;
+    for(auto index = array.begin(); index != array.end(); index++) {
+        QJsonObject json = (*index).toObject();
+        n_list.append(new CartCommodity(json));
+    }
+    cart->openCart(n_list, currentUser->getUserId());
+}
+
+void Client::pushOpenOrder() {
+    Command command(CommandType::ORDER_SELECT, currentUser->getUserId());
+    sendMessage(command);
+    QJsonArray array = waitArray();
+    QList<Order *> n_list;
+    for(auto index = array.begin(); index != array.end(); index++) {
+        QJsonObject json = (*index).toObject();
+        n_list.append(new Order(json));
+    }
+    order->openOrder(n_list, currentUser->getUserId());
+}
+
+void Client::completeDeal() {
+    Command command = cart->compeleteDeal();
+    sendMessage(command);
+    QJsonObject json = waitData();
+    if(json["response"].toInt() == SqlResponse::SUCCESS)
+        emit infoHappen("生成订单成功");
+    else {
+        QString msg = "订单生成失败, %1 库存不足";
+        QString name = json["text"].toString();
+        emit errorHappen(msg.arg(name));
+    }
+}
+
+void Client::select(int row) {
+    emit selected(row);
+}
+
+void Client::deleteRow(int row) {
+    QJsonArray array = cart->deleteRow(row);
+    Command command(CommandType::CART_DELETE, array);
+    sendMessage(command);
+    QJsonObject json = waitData();
+    if(json["response"].toInt() == SqlResponse::SUCCESS) {
+        emit infoHappen("删除成功");
+    }
+}
+
+void Client::deleteOrder(int row) {
+    Order* orderp = order->deleteOrder(row);
+    Command command(CommandType::ORDER_DELETE, orderp->toJsonObject());
+    sendMessage(command);
+    QJsonObject json = waitData();
+    if(json["response"].toInt() == SqlResponse::SUCCESS) {
+        emit infoHappen("取消订单成功");
+    }
+}
+
+void Client::finishOrder(int row) {
+    Order* orderp = order->finishOrder(row);
+    Command command(CommandType::ORDER_FINISH, orderp->toJsonObject());
+    if(orderp->getPrice() < queryCurrentBalance()){
+        sendMessage(command);
+        QJsonObject json = waitData();
+        emit balanceChange(queryCurrentBalance());
+        emit infoHappen("提交订单成功");
+    } else
+        emit errorHappen("提交订单失败，余额不足");
+}
+
+void Client::calculateOrder(QString userid, float money) {
+    /*
+    BaseUser* baseUser;
+    for(auto index = customerList.begin(); index != customerList.end(); index++) {
+        baseUser = *index;
+        if (baseUser->userid == userid) {
+            (*index)->pay(money);
+            emit balanceChange((*index)->queryBalance());
+            return;
+        }
+    }
+
+    for(auto index = sellerList.begin(); index != sellerList.end(); index++) {
+        baseUser = *index;
+        if (baseUser->userid == userid) {
+            (*index)->addMoney(money);
+            return;
+        }
+    }
+    */
 }
 
 // network

@@ -12,6 +12,7 @@ SOURCES += \
 	../../server/command.cpp \
 	cartmodel.cpp \
     commoditymodel.cpp \
+	lib/cartcommodity.cpp \
     lib/client.cpp \
     lib/commodity.cpp \
 	lib/order.cpp \
@@ -23,6 +24,7 @@ HEADERS += \
 	../../server/command.h \
 	cartmodel.h \
     commoditymodel.h \
+	lib/cartcommodity.h \
     lib/client.h \
     lib/commodity.h \
 	lib/order.h \

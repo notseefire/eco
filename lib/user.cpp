@@ -19,15 +19,29 @@ QString BaseUser::getPassword() const {
     return password;
 }
 
-SellerUser::SellerUser(QString& n_userid, QString& n_password)
-    : BaseUser(n_userid, n_password) {}
+SellerUser::SellerUser(QString& n_userid, QString& n_password, float balance)
+    : BaseUser(n_userid, n_password) {
+    money = balance;
+}
 
 SellerUser::SellerUser(QJsonObject& json)
-    : BaseUser(json["userid"].toString(), json["password"].toString()) {}
+    : BaseUser(json["userid"].toString(), json["password"].toString()) {
+    money = json["balance"].toDouble();
+}
 
 UserType SellerUser::getUserType() const {
     return UserType::Seller;
 }
+
+
+void SellerUser::addMoney(float price) {
+    money += price;
+}
+
+float SellerUser::getMoney() {
+    return money;
+}
+
 
 CustomerUser::CustomerUser(QString& n_userid, QString& n_password, float n_balance)
     : BaseUser(n_userid, n_password) {
@@ -72,5 +86,6 @@ QJsonObject SellerUser::toJsonObject() const {
     json["usertype"] = UserType::Seller;
     json["userid"] = userid;
     json["password"] = password;
+    json["balance"] = money;
     return json;
 }

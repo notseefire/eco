@@ -104,7 +104,7 @@ float BookCommodity::getActualPrice() const {
         return percent;
     }
     else {
-        return getPrice();
+        return 1.0;
     }
 }
 
@@ -121,7 +121,7 @@ float FoodCommodity::getActualPrice() const {
         return percent;
     }
     else {
-        return getPrice();
+        return 1.0;
     }
 }
 
