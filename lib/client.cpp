@@ -111,7 +111,7 @@ bool Client::registerUser(int userType, QString userid, QString password, float 
             customerList.append(new CustomerUser(userid, password, balance));
         break;
         case 1:
-            sellerList.append(new SellerUser(userid, password));
+            sellerList.append(new SellerUser(userid, password, balance));
         break;
     }
     emit infoHappen("注册成功");
@@ -134,18 +134,18 @@ void Client::loadUserConfig(QString path) {
     QString password, userid, userType;
     float balance;
     while(!in.atEnd()) {
-        in >> userType >> userid >> password;
+        in >> userType >> userid >> password >> balance;
         if(userType.length() == 0) continue;
         if(in.status() != QTextStream::Ok) {
             throw "读取用户信息错误";
         }
         if(userType == "customer") {
-            in >> balance;
             customerList.append(new CustomerUser(userid, password, balance));
+            // 创建购物车表
             bool success = query.exec(queryStr.arg(userid));
             if(!success) throw query.lastError();
         } else if (userType == "seller") {
-            sellerList.append(new SellerUser(userid, password));
+            sellerList.append(new SellerUser(userid, password, balance));
         } else {
             throw "未定义的用户类型";
         }
@@ -170,7 +170,7 @@ void Client::saveUserConfig(QString path) {
     for(auto index = sellerList.begin(); index != sellerList.end(); index++) {
         SellerUser* sellerUser = *index;
         out << "seller " << sellerUser->userid << " "
-            << sellerUser->password << "\n";
+            << sellerUser->password << " " << sellerUser->getMoney() << "\n";
     }
     qDebug() << "保存成功" << Qt::endl;
 }
@@ -382,22 +382,23 @@ void Client::finishOrder(int row) {
 }
 
 void Client::calculateOrder(QString userid, float money) {
+    BaseUser* baseUser;
     for(auto index = customerList.begin(); index != customerList.end(); index++) {
-        BaseUser* baseUser = *index;
+        baseUser = *index;
         if (baseUser->userid == userid) {
             (*index)->pay(money);
+            emit balanceChange((*index)->queryBalance());
             return;
         }
     }
 
     for(auto index = sellerList.begin(); index != sellerList.end(); index++) {
-        BaseUser* baseUser = *index;
+        baseUser = *index;
         if (baseUser->userid == userid) {
             (*index)->addMoney(money);
             return;
         }
     }
-
 }
 
 // DEBUG

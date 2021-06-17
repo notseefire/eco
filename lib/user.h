@@ -40,7 +40,7 @@ public:
  */
 class SellerUser: public BaseUser {
 public:
-    SellerUser(QString&, QString&);
+    SellerUser(QString&, QString&, float n_money = 0);
     /*! \fn UserType getUserType()
      *  \brief 返回UserType::Seller，表示用户类型为商家
      */

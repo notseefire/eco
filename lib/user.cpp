@@ -19,9 +19,9 @@ QString BaseUser::getPassword() const {
     return password;
 }
 
-SellerUser::SellerUser(QString& n_userid, QString& n_password)
+SellerUser::SellerUser(QString& n_userid, QString& n_password, float n_money)
     : BaseUser(n_userid, n_password) {
-    money = 0;
+    money = n_money;
 }
 
 void SellerUser::addMoney(float price) {
