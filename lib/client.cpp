@@ -107,9 +107,19 @@ bool Client::registerUser(int userType, QString userid, QString password, float 
 
     // 0 for Customer, 1 for Seller
     switch (userType) {
-        case 0:
-            customerList.append(new CustomerUser(userid, password, balance));
+        case 0:{
+        QSqlQuery query;
+        QString queryStr = "CREATE TABLE IF NOT EXISTS %1_Cart(\
+                    Name    VARCAHR(10)     NOT NULL,\
+                    User    VARCHAR(10)     NOT NULL,\
+                    Num   INT             NOT NULL\
+                );";
+        customerList.append(new CustomerUser(userid, password, balance));
+        bool success = query.exec(queryStr.arg(userid));
+        if(!success) throw query.lastError();
         break;
+        }
+
         case 1:
             sellerList.append(new SellerUser(userid, password, balance));
         break;
