@@ -3,6 +3,8 @@
 #include <iostream>
 #include <QDir>
 #include <QSqlError>
+#include <QHBoxLayout>
+#include <QLabel>
 
 using namespace std;
 
@@ -17,6 +19,16 @@ Server::Server(QWidget *parent) : QWidget(parent)
     server = new QTcpServer(this);
     server->listen(QHostAddress::LocalHost, 23333);
     connect(server, &QTcpServer::newConnection, this, &Server::newConnection);
+    setUI();
+}
+
+void Server::setUI() {
+    QHBoxLayout* layout = new QHBoxLayout();
+    setLayout(layout);
+    QLabel* name = new QLabel("ECO Server");
+    QLabel* label_ip = new QLabel("Listening on port 23333");
+    layout->addWidget(name);
+    layout->addWidget(label_ip);
 }
 
 Server::~Server() {
@@ -76,6 +88,8 @@ void Server::loadUserConfig(QString path) {
         }
         if(userType == "customer") {
             in >> balance;
+            int ibalance = balance * 100.0;
+            balance = ibalance / 100.0;
             customerList.append(new CustomerUser(userid, password, balance));
         } else if (userType == "seller") {
             sellerList.append(new SellerUser(userid, password));
@@ -281,6 +295,7 @@ void Server::userCommandExec(unsigned char p_id, Command command) {
             for(auto index = customerList.begin(); index != customerList.end(); index++) {
                 BaseUser* baseUser = *index;
                 if (baseUser->userid == user->userid) {
+                    qDebug() << (*index)->queryBalance();
                     json["balance"] = (*index)->queryBalance();
                 }
             }
@@ -328,7 +343,10 @@ void Server::userCommandExec(unsigned char p_id, Command command) {
             commodity = new BookCommodity(commodity_json);
         }
         json["response"] = UserResponseType::Success;
-        json["percent"] = commodity->getActualPrice();
+        float percent = commodity->getActualPrice();
+        int ipercent = percent * 100.0;
+        percent = ipercent / 100.0;
+        json["percent"] = percent;
         socket->sendInfoMessage(json);
     }
 }
