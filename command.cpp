@@ -9,6 +9,10 @@ Command::Command(CommandType n_type, QString n_query) {
     query = n_query;
 }
 
+Command::Command(CommandType n_type, int n_num) {
+    type = n_type;
+    num = n_num;
+}
 Command::Command(CommandType n_type, QString n_userid, QString n_password) {
     type = n_type;
     userid = n_userid;
@@ -19,6 +23,19 @@ Command::Command(CommandType n_type, QString n_userid, QString n_password, int n
     userid = n_userid;
     password = n_password;
     usertype = n_usertype;
+}
+
+Command::Command(CommandType n_type, QString n_name, QString n_userid, int n_num, QString n_cur) {
+    type = n_type;
+    name = n_name;
+    userid = n_userid;
+    num = n_num;
+    cur = n_cur;
+}
+
+Command::Command(CommandType n_type, QJsonArray n_list) {
+    type = n_type;
+    list = n_list;
 }
 
 Command::Command(CommandType n_type, float n_balance) {
@@ -71,7 +88,32 @@ Command::Command(QJsonObject &json) {
     case CommandType::QUERY_EVENT:
         type = CommandType::QUERY_EVENT;
         break;
+    case CommandType::CART_SELECT:
+        type = CommandType::CART_SELECT;
+        break;
+    case CommandType::CART_UPDATE:
+        type = CommandType::CART_UPDATE;
+        break;
+    case CommandType::CART_DEAL:
+        type = CommandType::CART_DEAL;
+        break;
+    case CommandType::CART_DELETE:
+        type = CommandType::CART_DELETE;
+        break;
+    case CommandType::ORDER_SELECT:
+        type = CommandType::ORDER_SELECT;
+        break;
+    case CommandType::ORDER_UPDATE:
+        type = CommandType::ORDER_UPDATE;
+        break;
+    case CommandType::ORDER_DELETE:
+        type = CommandType::ORDER_DELETE;
+        break;
+    case CommandType::ORDER_FINISH:
+        type = CommandType::ORDER_FINISH;
+        break;
     }
+
 
     if(json.contains("query")) {
         query = json["query"].toString();
@@ -97,6 +139,18 @@ Command::Command(QJsonObject &json) {
     if(json.contains("percent")) {
         percent = json["percent"].toDouble();
     }
+    if(json.contains("num")) {
+        num = json["num"].toInt();
+    }
+    if(json.contains("cur")) {
+        cur = json["cur"].toString();
+    }
+    if(json.contains("name")) {
+        name = json["name"].toString();
+    }
+    if(json.contains("list")) {
+        list = json["list"].toArray();
+    }
 }
 
 QJsonObject Command::toJsonObject() {
@@ -118,6 +172,14 @@ QJsonObject Command::toJsonObject() {
         json["commodity_type"] = commodity_type;
     if(percent != 0.0)
         json["percent"] = percent;
+    if(num != 0)
+        json["num"] = num;
+    if(!cur.isEmpty())
+        json["cur"] = cur;
+    if(!name.isEmpty())
+        json["name"] = name;
+    if(!list.isEmpty())
+        json["list"] = list;
     return json;
 }
 

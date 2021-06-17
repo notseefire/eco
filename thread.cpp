@@ -32,6 +32,12 @@ void Thread::recvMessage() {
         emit execUser(p_id, command);
     if(type == CommandType::QUERY_EVENT)
         emit execEvent(p_id, command);
+    if(type == CommandType::CART_SELECT || type == CommandType::CART_UPDATE || type == CommandType::CART_DEAL ||
+            type == CommandType::CART_DELETE)
+        emit execCart(p_id, command);
+    if(type == CommandType::ORDER_SELECT || type == CommandType::ORDER_UPDATE || type == CommandType::ORDER_DELETE ||
+            type == CommandType::ORDER_FINISH)
+        emit execOrder(p_id, command);
 }
 
 void Thread::sendMessage(QJsonArray json) {

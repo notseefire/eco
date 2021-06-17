@@ -26,6 +26,8 @@ signals:
     void execQuery(unsigned char p_id, Command command);
     void execUser(unsigned char p_id, Command command);
     void execEvent(unsigned char p_id, Command command);
+    void execCart(unsigned char p_id, Command command);
+    void execOrder(unsigned char p_id, Command command);
     void closeThread(Thread* thread);
 
 private slots:

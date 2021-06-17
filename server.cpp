@@ -5,6 +5,8 @@
 #include <QSqlError>
 #include <QHBoxLayout>
 #include <QLabel>
+#include "../../eco/eco/lib/cartcommodity.h"
+#include "../../eco/eco/lib/order.h"
 
 using namespace std;
 
@@ -43,8 +45,30 @@ void Server::newConnection() {
     connect(thread, &Thread::execQuery, this, &Server::sqlCommandExec);
     connect(thread, &Thread::execUser, this, &Server::userCommandExec);
     connect(thread, &Thread::execEvent, this, &Server::eventCommandExec);
+    connect(thread, &Thread::execCart, this, &Server::cartCommandExec);
+    connect(thread, &Thread::execOrder, this, &Server::orderCommandExec);
     connect(thread, &Thread::closeThread, this, &Server::closeThread);
     threadPool.push_back(thread);
+}
+
+void Server::calculateOrder(QString userid, float money) {
+    qDebug() << userid << " " << money;
+    BaseUser* baseUser;
+    for(auto index = customerList.begin(); index != customerList.end(); index++) {
+        baseUser = *index;
+        if (baseUser->userid == userid) {
+            (*index)->pay(money);
+            return;
+        }
+    }
+
+    for(auto index = sellerList.begin(); index != sellerList.end(); index++) {
+        baseUser = *index;
+        if (baseUser->userid == userid) {
+            (*index)->addMoney(money);
+            return;
+        }
+    }
 }
 
 void Server::closeThread(Thread* thread) {
@@ -77,22 +101,28 @@ void Server::loadUserConfig(QString path) {
         qDebug() << "用户信息文件不存在，创建文件" << Qt::endl;
     }
 
+    QSqlQuery query;
+        QString queryStr = "CREATE TABLE IF NOT EXISTS %1_Cart(\
+                    Name    VARCAHR(10)     NOT NULL,\
+                    User    VARCHAR(10)     NOT NULL,\
+                    Num   INT             NOT NULL\
+                );";
+
     QTextStream in(&file);
     QString password, userid, userType;
     float balance;
     while(!in.atEnd()) {
-        in >> userType >> userid >> password;
+        in >> userType >> userid >> password >> balance;
         if(userType.length() == 0) continue;
         if(in.status() != QTextStream::Ok) {
             throw "读取用户信息错误";
         }
         if(userType == "customer") {
-            in >> balance;
-            int ibalance = balance * 100.0;
-            balance = ibalance / 100.0;
+            bool success = query.exec(queryStr.arg(userid));
+            if(!success) throw query.lastError();
             customerList.append(new CustomerUser(userid, password, balance));
         } else if (userType == "seller") {
-            sellerList.append(new SellerUser(userid, password));
+            sellerList.append(new SellerUser(userid, password, balance));
         } else {
             throw "未定义的用户类型";
         }
@@ -117,7 +147,7 @@ void Server::saveUserConfig(QString path) {
     for(auto index = sellerList.begin(); index != sellerList.end(); index++) {
         SellerUser* sellerUser = *index;
         out << "seller " << sellerUser->userid << " "
-            << sellerUser->password << "\n";
+            << sellerUser->password << " " << sellerUser->getMoney() << "\n";
     }
     qDebug() << "保存成功";
 }
@@ -144,6 +174,13 @@ void Server::openDataBase() {
         success = query.exec("CREATE TABLE IF NOT EXISTS Event (\
             User    VARCAHR(10)     NOT NULL,\
             Type    VARCAHR(10)     NOT NULL,\
+            Price   FLOAT           NOT NULL\
+        );");
+        if(!success) throw query.lastError();
+
+        success = query.exec("CREATE TABLE IF NOT EXISTS OrderList (\
+            Num     INT             NOT NULL,\
+            User    VARCAHR(10)     NOT NULL,\
             Price   FLOAT           NOT NULL\
         );");
         if(!success) throw query.lastError();
@@ -236,11 +273,19 @@ UserResponseType Server::registerUser(int userType, QString userid, QString pass
 
     // 0 for Customer, 1 for Seller
     switch (userType) {
-        case 0:
+        case 0: {
             customerList.append(new CustomerUser(userid, password, 0));
-        break;
+            QSqlQuery query;
+            QString queryStr = "CREATE TABLE IF NOT EXISTS %1_Cart(\
+                            Name    VARCAHR(10)     NOT NULL,\
+                            User    VARCHAR(10)     NOT NULL,\
+                            Num   INT             NOT NULL\
+                        );";
+            query.exec(queryStr.arg(userid));
+            break;
+        }
         case 1:
-            sellerList.append(new SellerUser(userid, password));
+            sellerList.append(new SellerUser(userid, password, 0));
         break;
     }
     return UserResponseType::Success;
@@ -305,10 +350,17 @@ void Server::userCommandExec(unsigned char p_id, Command command) {
     if(command.getType() == CommandType::CHANGE_BALANCE) {
         BaseUser* user = socket->getCurrentUser();
         float balance = command.balance;
-        if(user == nullptr || user->getUserType() != UserType::Customer) {
+        if(user == nullptr) {
             json["response"] = UserResponseType::Error;
         } else {
             json["response"] = UserResponseType::Success;
+            for(auto index = sellerList.begin(); index != sellerList.end(); index++) {
+                BaseUser* baseUser = *index;
+                if (baseUser->userid == user->userid) {
+                    (*index)->addMoney(balance);
+                }
+            }
+
             for(auto index = customerList.begin(); index != customerList.end(); index++) {
                 BaseUser* baseUser = *index;
                 if (baseUser->userid == user->userid) {
@@ -378,4 +430,183 @@ void Server::eventCommandExec(unsigned char p_id, Command command) {
         json["response"] = SqlResponse::ERROR;
     }
     socket->sendInfoMessage(json);
+}
+
+void Server::cartCommandExec(unsigned char p_id, Command command) {
+    QSqlQuery query;
+    Thread* socket = find_socket(p_id);
+    if(command.getType() == CommandType::CART_UPDATE) {
+        QJsonObject json;
+        json["response"] = SqlResponse::SUCCESS;
+        QString cur = command.cur;
+        QString userid = command.userid;
+        QString name = command.name;
+        int num = command.num;
+        QString queryStr = "SELECT * FROM %1_Cart WHERE User='%2' AND Name='%3'";
+        query.exec(queryStr.arg(cur).arg(userid).arg(name));
+        if(query.next()) {
+            queryStr = "UPDATE %1_Cart SET Num=Num+%2 "
+                "WHERE Name='%3' AND User='%4'";
+            query.exec(queryStr.arg(cur).arg(num).arg(name).arg(userid));
+        } else {
+            queryStr = "INSERT INTO %1_Cart VALUES('%2', '%3', %4)";
+            query.exec(queryStr.arg(cur).arg(name).arg(userid).arg(num));
+            qDebug() << queryStr.arg(cur).arg(name).arg(userid).arg(num);
+        }
+        socket->sendInfoMessage(json);
+    } else if(command.getType() == CommandType::CART_SELECT) {
+        QJsonArray array;
+        QString queryStr = command.getQuery();
+        query.exec(queryStr);
+        /* Commodity Data Table
+            Name    VARCAHR(10)     NOT NULL
+            Description VARCHAR(50) NOT NULL
+            Type    VARCAHR(10)     NOT NULL
+            User    VARCHAR(10)     NOT NULL
+            Price   INT             NOT NULL
+            Store   INT             NOT NULL
+        */
+        while(query.next()) {
+            QString name = query.value(0).toString();
+            QString userid = query.value(1).toString();
+            int store = query.value(2).toString().toInt();
+            CartCommodity* commodity =
+                    new CartCommodity(socket->getCurrentUser()->getUserId(), name, userid, store);
+            array.append(commodity->toJsonObject());
+        }
+        socket->sendMessage(array);
+    } else if(command.getType() == CommandType::CART_DEAL) {
+        QJsonArray array = command.list;
+        QJsonObject json;
+        QList<CartCommodity*> m_list;
+        float price = 0;
+        int max_id = 0;
+        QString currentUser = socket->getCurrentUser()->getUserId();
+
+        for(auto index = array.begin(); index != array.end(); index++) {
+            m_list.append(new CartCommodity((*index).toObject()));
+        }
+
+        for(auto element = m_list.begin(); element != m_list.end(); element++) {
+            CartCommodity* commodity = *element;
+            if(commodity->getSelected()) {
+                int store = commodity->getStore();
+                if(store < commodity->getNum()) {
+                    json["response"] = SqlResponse::ERROR;
+                    json["text"] = commodity->getName();
+                }
+                price += commodity->getPrice() * commodity->getNum();
+            }
+        }
+        if(json.contains("response")) {
+            socket->sendInfoMessage(json);
+            return;
+        }
+        QSqlQuery query;
+        QString queryStr = "SELECT MAX(Num) FROM OrderList";
+        query.exec(queryStr);
+        if(query.next()) {
+            max_id = query.value(0).toInt() + 1;
+        }
+        queryStr = "INSERT INTO OrderList VALUES(%1, '%2', %3)";
+        query.exec(queryStr.arg(max_id).arg(currentUser).arg(price));
+        qDebug() << queryStr.arg(max_id).arg(currentUser).arg(price);
+
+        queryStr = "CREATE TABLE IF NOT EXISTS OrderList%1(\
+                    Name    VARCAHR(10)     NOT NULL,\
+                    User    VARCHAR(10)     NOT NULL,\
+                    Num   INT             NOT NULL\
+                );";
+        query.exec(queryStr.arg(max_id));
+        queryStr = "INSERT INTO OrderList%1 VALUES ('%2', '%3', %4)";
+
+        for(auto element = m_list.begin(); element != m_list.end(); element++) {
+            CartCommodity* commodity = *element;
+            if(commodity->getSelected()) {
+                query.exec(queryStr.arg(max_id).arg(commodity->getName())
+                                                    .arg(commodity->getUserID()).arg(commodity->getNum()));
+                commodity->deleteFromCart();
+                commodity->finishFromCart();
+            }
+        }
+        json["response"] = SqlResponse::SUCCESS;
+        socket->sendInfoMessage(json);
+    } else if(command.getType() == CommandType::CART_DELETE) {
+        QJsonArray array = command.list;
+        QJsonObject json;
+        json["response"] = SqlResponse::SUCCESS;
+        CartCommodity* commodity = new CartCommodity((*array.begin()).toObject());
+        commodity->deleteFromCart();
+        socket->sendInfoMessage(json);
+    }
+}
+
+void Server::orderCommandExec(unsigned char p_id, Command command) {
+    Thread* socket = find_socket(p_id);
+    QSqlQuery query;
+    if(command.getType() == CommandType::ORDER_SELECT) {
+        QJsonArray array;
+        QString cur = command.getQuery();
+        QSqlQuery query;
+        QString queryStr = "SELECT * FROM OrderList WHERE User='%1'";
+        query.exec(queryStr.arg(cur));
+        QList<Order*> m_list;
+
+        while(query.next()) {
+            int num = query.value(0).toInt();
+            float price = query.value(2).toFloat();
+            m_list.append(new Order(cur, num, price));
+        }
+
+        queryStr = "SELECT * FROM OrderList%1";
+        for(auto element = m_list.begin(); element != m_list.end(); element++) {
+            Order* order = *element;
+            query.exec(queryStr.arg(order->getID()));
+            while(query.next()) {
+                QString name = query.value(0).toString();
+                QString userid = query.value(1).toString();
+                int num = query.value(2).toInt();
+                order->addCommodity(name, userid, num);
+            }
+        }
+
+        for(auto element = m_list.begin(); element != m_list.end(); element++) {
+            array.append((*element)->toJsonObject());
+        }
+
+        socket->sendMessage(array);
+    } else if(command.getType() == ORDER_DELETE) {
+        QJsonObject json;
+        json["response"] = SqlResponse::SUCCESS;
+        Order* order = new Order(command.commodity);
+        QList<CartCommodity*> list = order->getList();
+        for(auto element = list.begin(); element != list.end(); element++) {
+            CartCommodity* commodity = *element;
+            commodity->cancel();
+        }
+        QSqlQuery query;
+        QString queryStr = "DROP TABLE OrderList%1";
+        query.exec(queryStr.arg(order->getID()));
+        queryStr = "DELETE FROM OrderList WHERE Num=%1";
+        query.exec(queryStr.arg(order->getID()));
+        socket->sendInfoMessage(json);
+    } else if(command.getType() == ORDER_FINISH) {
+        QJsonObject json;
+        Order* order = new Order(command.commodity);
+        QList<CartCommodity*> list = order->getList();
+        for(auto element = list.begin(); element != list.end(); element++) {
+            CartCommodity* commodity = *element;
+            float price = commodity->getNum() * commodity->getPrice();
+            calculateOrder(commodity->getUserID(), price);
+        }
+        QSqlQuery query;
+        QString queryStr = "DROP TABLE OrderList%1";
+        query.exec(queryStr.arg(order->getID()));
+
+        queryStr = "DELETE FROM OrderList WHERE Num=%1";
+        query.exec(queryStr.arg(order->getID()));
+        calculateOrder(socket->getCurrentUser()->getUserId(), order->getPrice());
+        json["response"] = SqlResponse::SUCCESS;
+        socket->sendInfoMessage(json);
+    }
 }

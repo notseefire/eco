@@ -66,8 +66,11 @@ public slots:
     void sqlCommandExec(unsigned char p_id, Command command);
     void userCommandExec(unsigned char p_id, Command command);
     void eventCommandExec(unsigned char p_id, Command command);
+    void cartCommandExec(unsigned char p_id, Command command);
+    void orderCommandExec(unsigned char p_id, Command command);
     void aboutToQuit();
     void closeThread(Thread* thread);
+    void calculateOrder(QString userid, float money);
 
 
 signals:
