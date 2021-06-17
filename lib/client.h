@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QSqlDatabase>
 #include <QObject>
+#include <QTimer>
 #include <QDataStream>
 #include <QRegExp>
 #include <QTcpSocket>
@@ -123,6 +124,8 @@ public:
     QJsonObject waitData();
     QJsonArray waitArray();
 
+    void setConnection();
+
 signals:
     void signIn(bool isCustomer);
     void signOut();
@@ -137,6 +140,8 @@ signals:
 
 public slots:
     void freshData(QString query);
+    void disconnection();
+    void try_connect();
 
 private slots:
     void connectSuccess() {
@@ -148,7 +153,7 @@ private:
     // curCustomerUser和curSellerUser同时只能存在一个
     CustomerUser *curCustomerUser;  //!< 当前客户端登录的消费者用户，未登录时为空
     SellerUser *curSellerUser;  //!< 当前客户端登录的商家用户，未登录时为空
-
+    QTimer* timer;
     QTcpSocket* socket = nullptr;
     QDataStream in;
     QSqlDatabase database; //!< 客户端的数据库对象

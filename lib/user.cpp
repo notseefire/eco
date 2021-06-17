@@ -38,6 +38,8 @@ CustomerUser::CustomerUser(QString& n_userid, QString& n_password, float n_balan
 CustomerUser::CustomerUser(QJsonObject& json)
     : BaseUser(json["userid"].toString(), json["password"].toString()) {
     balance = json["balance"].toDouble();
+    int ibalance = balance * 100.0;
+    balance = ibalance / 100.0;
 }
 
 UserType CustomerUser::getUserType() const {

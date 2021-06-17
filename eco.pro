@@ -2,7 +2,7 @@ QT       += qml quick quickcontrols2 sql network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11
+CONFIG += c++11 staticlib
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -10,18 +10,24 @@ CONFIG += c++11
 
 SOURCES += \
 	../../server/command.cpp \
+	cartmodel.cpp \
     commoditymodel.cpp \
     lib/client.cpp \
     lib/commodity.cpp \
+	lib/order.cpp \
     main.cpp \
     lib/user.cpp \
+	ordermodel.cpp
 
 HEADERS += \
 	../../server/command.h \
+	cartmodel.h \
     commoditymodel.h \
     lib/client.h \
     lib/commodity.h \
+	lib/order.h \
     lib/user.h \
+	ordermodel.h
 
 DISTFILES += \
     main.qml \

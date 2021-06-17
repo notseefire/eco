@@ -122,7 +122,7 @@ Item {
                             }
 
                             Text {
-                                text: balance
+                                text: balance.toFixed(2)
                             }
                         }
 
@@ -381,7 +381,7 @@ Item {
                                     }
 
                                     Text {
-                                        text: percentSlider.value
+                                        text: (percentSlider.value.toFixed(1) * 10) + qsTr("折")
                                     }
                                 }
 

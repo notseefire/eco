@@ -11,11 +11,39 @@
 #define DEBUG
 
 Client::Client(QObject* parent): QObject(parent) {
+    timer = new QTimer();
     socket = new QTcpSocket(this);
     socket->connectToHost("127.0.0.1", 23333);
+    socket->waitForConnected();
+
+    connect(socket, &QAbstractSocket::disconnected,
+            this, &Client::disconnection);
+
+    timer->start(2000);
+
     in.setDevice(socket);
     in.setVersion(QDataStream::Version::Qt_5_15);
     currentUser = nullptr;
+
+    connect(timer, &QTimer::timeout,
+            this, &Client::try_connect);
+}
+
+void Client::setConnection() {
+
+}
+
+void Client::disconnection() {
+    emit errorHappen("失去与服务器的连接");
+    socket->connectToHost("127.0.0.1", 23333);
+    socket->waitForConnected();
+}
+
+void Client::try_connect() {
+    if(socket->state() == QAbstractSocket::SocketState::UnconnectedState) {
+        socket->connectToHost("127.0.0.1", 23333);
+        socket->waitForConnected(1000);
+    }
 }
 
 Client::~Client() {
@@ -280,8 +308,13 @@ float Client::queryCurrentBalance() {
     sendMessage(command);
     QJsonObject json = waitData();
 
-    if(json["response"].toInt() == UserResponseType::Success)
-        return json["balance"].toDouble();
+    if(json["response"].toInt() == UserResponseType::Success) {
+        float balance = json["balance"].toDouble();
+        qDebug() << balance;
+        int ibalance = balance * 100.0;
+        balance = ibalance / 100.0;
+        return balance;
+    }
     else
         return 0;
 }

@@ -9,6 +9,7 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
     Client* client = new Client();
+    client->setConnection();
     CommodityModel* commodityModel = new CommodityModel(client);
 
     QObject::connect(client, &Client::updateData,
